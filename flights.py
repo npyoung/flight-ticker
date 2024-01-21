@@ -1,54 +1,95 @@
 #!/usr/bin/python
+from FlightRadar24 import FlightRadar24API
 from shapely.geometry import Point, Polygon
+from dataclasses import dataclass
 import logging
 import requests
 import time
-
-ROI_VERTICES = [
-    [37.586062, -122.349855],
-    [37.422485, -122.140111],
-    [37.507917, -122.052749],
-    [37.625808, -122.342403]
-]
-
-CENTER = [37.537619, -122.168786]
-
-POLLING_INTERVAL = 60 * 60
-
-# e.g. https://airlabs.co/api/v9/flights?api_key=32b0f92f-58ea-4dda-8231-de37ec385b59&bbox=37.428009,-122.334362,37.673579,-121.896671
-ENDPOINT_URL = "https://airlabs.co/api/v9/flights"
-API_KEY = "32b0f92f-58ea-4dda-8231-de37ec385b59"
+import tomllib
 
 
-def get_flight(polygon):
-    bbox = polygon.bounds
-    api_url = f"{ENDPOINT_URL}?api_key={API_KEY}&bbox={",".join(map(str, bbox))}"
-    response = requests.get(api_url)
+ROI_POLYGON = Polygon(
+    [
+        [37.586062, -122.349855],
+        [37.422485, -122.140111],
+        [37.507917, -122.052749],
+        [37.625808, -122.342403]
+    ]
+)
+
+CENTER = Point(37.537619, -122.168786)
+
+POLLING_INTERVAL = 5
+
+LOCAL_URL = "http://adsbexchange.local/tar1090/data/aircraft.json"
+
+
+def closest_flight():
+    bbox = ROI_POLYGON.bounds
+    
+    response = requests.get(LOCAL_URL)
     data = response.json()
+    aircraft = data['aircraft']
 
-    in_poly = filter(lambda record: polygon.contains(Point(record['lat'], record['lng'])) and record['status'] == "en-route", data['response'])
-    closest = min(in_poly, key=lambda record: (record['lat'] - CENTER[0])**2 + (record['lng'] - CENTER[1])**2)
+    closest_aircraft = None
+    closest_distance = 1000
 
+    for record in aircraft:
+        if 'lat' in record and 'lon' in record and 'flight' in record:
+            lat = record['lat']
+            lon = record['lon']
+            point = Point(lat, lon)
 
-def display_flight_info(record):
-    print(f"{record['airline_iata']}{record['flight_number']} {record['aircraft_icao']} {record['dep_iata']}->{record['arr_iata']}")
+            if ROI_POLYGON.contains(point):
+                distance = point.distance(CENTER)
+                if distance < closest_distance:
+                    closest_aircraft = record
+                    closest_distance = distance
     
+    return closest_aircraft
 
+def get_flight_table(api, zone_name):
+    zone = api.get_zones()[zone_name]
+    bounds = api.get_bounds(zone)
+    flights = api.get_flights(bounds=bounds)
+    return {flight.callsign: flight for flight in flights}
+    
 def main():
-    roi_polygon = Polygon(ROI_VERTICES)
-    record = get_flight(roi_polygon)
-    display_flight_info(record)
+    with open("config.toml", 'rb') as f:
+        config = tomllib.load(f)
+
+    fr_api = FlightRadar24API(
+        user=config['flightradar24']['user'],
+        password=config['flightradar24']['password']
+    )
+
+    known_flights = get_flight_table(fr_api, "northamerica")
+    last_adsb_callsign = ""
+    retried = False
     
-    t0 = time.time()
+    t0 = time.time() - POLLING_INTERVAL
 
     while True:
         t1 = time.time()
 
-        if t1 - t0 > POLLING_INTERVAL:
+        if t1 - t0 >= POLLING_INTERVAL:
             t0 += POLLING_INTERVAL
             
-            record = get_flight(roi_polygon)
-            display_flight_info(record)
+            adsb_flight = closest_flight()
+            if adsb_flight and adsb_flight['flight']:
+                adsb_flight['flight'] = adsb_flight['flight'].strip()
+
+                if adsb_flight['flight'] != last_adsb_callsign:
+                    last_adsb_callsign = adsb_flight['flight']
+                    retried = False
+
+                if adsb_flight['flight'] not in known_flights and not retried:
+                    known_flights = get_flight_table(fr_api, "northamerica")
+                    retried = True
+                
+                if adsb_flight['flight'] in known_flights:
+                    flight = known_flights[adsb_flight['flight']]
+                    print(f"{flight.callsign} {flight.aircraft_code} {flight.origin_airport_iata}->{flight.destination_airport_iata}")
 
 
 if __name__ == "__main__":
