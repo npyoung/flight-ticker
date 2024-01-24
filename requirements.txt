@@ -1,0 +1,5 @@
+FlightRadar24
+pyserial
+shapely
+requests
+toml

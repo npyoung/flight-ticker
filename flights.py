@@ -4,16 +4,17 @@ from shapely.geometry import Point, Polygon
 from dataclasses import dataclass
 import logging
 import requests
+import subprocess
 import time
 import tomllib
 
 
 ROI_POLYGON = Polygon(
     [
-        [37.586062, -122.349855],
-        [37.422485, -122.140111],
-        [37.507917, -122.052749],
-        [37.625808, -122.342403]
+        [37.481003, -122.230354],
+        [37.731009, -122.212237],
+        [37.480771, -121.940234],
+        [37.469006, -122.208103]
     ]
 )
 
@@ -89,7 +90,17 @@ def main():
                 
                 if adsb_flight['flight'] in known_flights:
                     flight = known_flights[adsb_flight['flight']]
-                    print(f"{flight.callsign} {flight.aircraft_code} {flight.origin_airport_iata}->{flight.destination_airport_iata}")
+
+                    cmd = [
+                        "./driver.py",
+                        "--port", "/dev/ttyS0",
+                        "--row-shift", "0.05",
+                        "--hold-time", "1.0",
+                        f"'{flight.callsign} {flight.aircraft_code}'",
+                        f"'{flight.origin_airport_iata}->{flight.destination_airport_iata}'"
+                    ]
+
+                    subprocess.check_call(cmd)
 
 
 if __name__ == "__main__":
