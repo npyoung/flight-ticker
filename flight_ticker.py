@@ -54,6 +54,8 @@ def main():
             flights = fr_api.get_flights(bounds=bounds)
             flights = filter(flight_in_polygon, flights)
             closest_flight = min(flights, key=flight_distance)
+            
+            cmd = ["./driver.py", "--port", "/dev/ttyS0", " "]
 
             if closest_flight:
                 logging.info(f"'{closest_flight.callsign} {closest_flight.aircraft_code}'")
@@ -62,16 +64,16 @@ def main():
                 cmd = [
                         "./driver.py",
                         "--port", "/dev/ttyS0",
-                        "--row-shift", "0.05",
-                        "--hold-time", "1.0",
-                        f"'{closest_flight.callsign} {closest_flight.aircraft_code}'",
-                        f"'{closest_flight.origin_airport_iata}->{closest_flight.destination_airport_iata}'"
+                        "--row-shift", "0.15",
+                        "--hold-time", "2.0",
+                        f"{closest_flight.callsign} {closest_flight.aircraft_code}",
+                        f"{closest_flight.origin_airport_iata}->{closest_flight.destination_airport_iata}"
                     ]
-
-                subprocess.check_call(cmd)
                 
             else:
                 logging.info("No planes found")
+
+            subprocess.check_call(cmd)
 
 
 if __name__ == "__main__":
