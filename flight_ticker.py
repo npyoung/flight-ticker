@@ -46,8 +46,7 @@ def main():
     )
 
     bounds = fr_api.get_bounds_by_point(*CENTER, RADIUS_KM * 1000)
-
-    total_time = 2 * LINE_TIME + N_ROWS * ROW_SHIFT
+    closest_flight = None
     t0 = time.time() - POLLING_INTERVAL
 
     while True:
@@ -77,7 +76,6 @@ def main():
             cmd = ["./driver.py", "--port", "/dev/ttyS0", " "]
 
         subprocess.check_call(cmd)
-        time.sleep(total_time)
 
 
 if __name__ == "__main__":
