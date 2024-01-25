@@ -21,6 +21,9 @@ RADIUS_KM = 25
 CENTER = (37.537619, -122.168786)
 CENTER_POINT = Point(*CENTER)
 POLLING_INTERVAL = 15
+ROW_SHIFT = 0.15
+N_ROWS = 6
+LINE_TIME = 2.0
 
 
 def flight_in_polygon(flight):
@@ -43,6 +46,8 @@ def main():
     )
 
     bounds = fr_api.get_bounds_by_point(*CENTER, RADIUS_KM * 1000)
+
+    total_time = 2 * LINE_TIME + N_ROWS * ROW_SHIFT
     t0 = time.time() - POLLING_INTERVAL
 
     while True:
@@ -50,30 +55,29 @@ def main():
 
         if t1 - t0 >= POLLING_INTERVAL:
             t0 += POLLING_INTERVAL
-
             flights = fr_api.get_flights(bounds=bounds)
             flights = filter(flight_in_polygon, flights)
             closest_flight = min(flights, key=flight_distance)
+
+        if closest_flight:
+            logging.info(f"'{closest_flight.callsign} {closest_flight.aircraft_code}'")
+            logging.info(f"'{closest_flight.origin_airport_iata}->{closest_flight.destination_airport_iata}'")
+
+            cmd = [
+                    "./driver.py",
+                    "--port", "/dev/ttyS0",
+                    "--row-shift", f"{ROW_SHIFT:0.5f}",
+                    "--hold-time", f"{LINE_TIME:0.5f}",
+                    f"{closest_flight.callsign} {closest_flight.aircraft_code}",
+                    f"{closest_flight.origin_airport_iata}->{closest_flight.destination_airport_iata}"
+                ]
             
+        else:
+            logging.info("No planes found")
             cmd = ["./driver.py", "--port", "/dev/ttyS0", " "]
 
-            if closest_flight:
-                logging.info(f"'{closest_flight.callsign} {closest_flight.aircraft_code}'")
-                logging.info(f"'{closest_flight.origin_airport_iata}->{closest_flight.destination_airport_iata}'")
-
-                cmd = [
-                        "./driver.py",
-                        "--port", "/dev/ttyS0",
-                        "--row-shift", "0.15",
-                        "--hold-time", "2.0",
-                        f"{closest_flight.callsign} {closest_flight.aircraft_code}",
-                        f"{closest_flight.origin_airport_iata}->{closest_flight.destination_airport_iata}"
-                    ]
-                
-            else:
-                logging.info("No planes found")
-
-            subprocess.check_call(cmd)
+        subprocess.check_call(cmd)
+        time.sleep(total_time)
 
 
 if __name__ == "__main__":
