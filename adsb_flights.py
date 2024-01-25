@@ -81,8 +81,8 @@ def main():
             
             adsb_flight = closest_flight()
             if adsb_flight and adsb_flight['flight']:
-                logging.debug(f"Found flight {adsb_flight['flight']}")
                 adsb_flight['flight'] = adsb_flight['flight'].strip()
+                logging.debug(f"Found flight '{adsb_flight['flight']}'")
 
                 if adsb_flight['flight'] != last_adsb_callsign:
                     logging.debug("New flight!")
@@ -111,6 +111,8 @@ def main():
                     ]
 
                     subprocess.check_call(cmd)
+                else:
+                    logging.debug("Flight lookup failed")
 
 
 if __name__ == "__main__":
