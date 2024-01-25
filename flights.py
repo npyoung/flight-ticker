@@ -6,7 +6,7 @@ import logging
 import requests
 import subprocess
 import time
-import tomllib
+import toml
 
 
 ROI_POLYGON = Polygon(
@@ -56,8 +56,7 @@ def get_flight_table(api, zone_name):
     return {flight.callsign: flight for flight in flights}
     
 def main():
-    with open("config.toml", 'rb') as f:
-        config = tomllib.load(f)
+    config = toml.load("config.toml")
 
     fr_api = FlightRadar24API(
         user=config['flightradar24']['user'],
