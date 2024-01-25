@@ -22,7 +22,8 @@ CENTER = Point(37.537619, -122.168786)
 
 POLLING_INTERVAL = 5
 
-LOCAL_URL = "http://adsbexchange.local/tar1090/data/aircraft.json"
+#LOCAL_URL = "http://adsbexchange.local/tar1090/data/aircraft.json"
+LOCAL_URL = "http://192.168.68.77/tar1090/data/aircraft.json"
 
 
 def closest_flight():
@@ -64,6 +65,9 @@ def main():
     )
 
     known_flights = get_flight_table(fr_api, "northamerica")
+    logging.info("Known flights:")
+    logging.info(known_flights.keys())
+
     last_adsb_callsign = ""
     retried = False
     
@@ -77,18 +81,25 @@ def main():
             
             adsb_flight = closest_flight()
             if adsb_flight and adsb_flight['flight']:
+                logging.debug(f"Found flight {adsb_flight['flight']}")
                 adsb_flight['flight'] = adsb_flight['flight'].strip()
 
                 if adsb_flight['flight'] != last_adsb_callsign:
+                    logging.debug("New flight!")
                     last_adsb_callsign = adsb_flight['flight']
                     retried = False
 
                 if adsb_flight['flight'] not in known_flights and not retried:
+                    logging.debug("Refreshing flight cache")
                     known_flights = get_flight_table(fr_api, "northamerica")
                     retried = True
                 
                 if adsb_flight['flight'] in known_flights:
                     flight = known_flights[adsb_flight['flight']]
+
+                    logging.info("Displaying aircraft information")
+                    logging.info(f"'{flight.callsign} {flight.aircraft_code}'")
+                    logging.info(f"'{flight.origin_airport_iata}->{flight.destination_airport_iata}'")
 
                     cmd = [
                         "./driver.py",
@@ -103,4 +114,5 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     main()
