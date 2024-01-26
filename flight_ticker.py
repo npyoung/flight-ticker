@@ -3,6 +3,7 @@ from FlightRadar24 import FlightRadar24API
 from shapely.geometry import Point, Polygon
 import logging
 from math import radians, acos, sin, cos
+from pathlib import Path
 import serial
 import subprocess
 import time
@@ -40,7 +41,7 @@ def flight_distance(flight):
     return acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1)) * 6371
 
 def main():
-    config = toml.load("config.toml")
+    config = toml.load(Path(__file__).parent / "config.toml")
 
     fr_api = FlightRadar24API(
         user=config['flightradar24']['user'],
