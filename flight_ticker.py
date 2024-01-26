@@ -3,6 +3,7 @@ from FlightRadar24 import FlightRadar24API
 from shapely.geometry import Point, Polygon
 import logging
 from math import radians, acos, sin, cos
+import serial
 import subprocess
 import time
 import toml
@@ -23,8 +24,7 @@ CENTER = (37.537619, -122.168786)
 CENTER_POINT = Point(*CENTER)
 POLLING_INTERVAL = 15
 ROW_SHIFT = 0.15
-N_ROWS = 6
-LINE_TIME = 2.0
+LINE_TIME = 4.0
 SERIAL_PORT = "/dev/ttyS0"
 
 
@@ -51,6 +51,7 @@ def main():
     closest_flight = None
     t0 = time.time() - POLLING_INTERVAL
 
+    device = serial.Serial(SERIAL_PORT, 38400)
     last_frame = build_output_frame(" ")
 
     while True:
@@ -71,13 +72,13 @@ def main():
             for s in output_strings:
                 logging.info(s)
                 new_frame = build_output_frame(s)
-                last_frame = write_output_frame(SERIAL_PORT, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
+                last_frame = write_output_frame(device, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
                 time.sleep(LINE_TIME)
             
         else:
             logging.info("No planes found")
             new_frame = build_output_frame(s)
-            last_frame = write_output_frame(SERIAL_PORT, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
+            last_frame = write_output_frame(device, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
             time.sleep(LINE_TIME)
 
 
