@@ -78,7 +78,7 @@ def main():
             
         else:
             logging.info("No planes found")
-            new_frame = build_output_frame(s)
+            new_frame = build_output_frame(" ")
             last_frame = write_output_frame(device, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
             time.sleep(LINE_TIME)
 
