@@ -23,7 +23,7 @@ ROI_POLYGON = Polygon(
 RADIUS_KM = 25
 CENTER = (37.537619, -122.168786)
 CENTER_POINT = Point(*CENTER)
-POLLING_INTERVAL = 15
+POLLING_INTERVAL = 30
 ROW_SHIFT = 0.15
 LINE_TIME = 4.0
 SERIAL_PORT = "/dev/ttyS0"
@@ -62,7 +62,7 @@ def main():
             t0 += POLLING_INTERVAL
             flights = fr_api.get_flights(bounds=bounds)
             flights = filter(flight_in_polygon, flights)
-            closest_flight = min(flights, key=flight_distance)
+            closest_flight = min(flights, key=flight_distance, default=None)
 
         if closest_flight:
             output_strings = [
