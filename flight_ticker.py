@@ -4,6 +4,7 @@ from shapely.geometry import Point, Polygon
 import logging
 from math import radians, acos, sin, cos
 from pathlib import Path
+from requests.exceptions import ConnectionError
 import serial
 import subprocess
 import time
@@ -60,7 +61,12 @@ def main():
 
         if t1 - t0 >= POLLING_INTERVAL:
             t0 += POLLING_INTERVAL
-            flights = fr_api.get_flights(bounds=bounds)
+            try:
+                flights = fr_api.get_flights(bounds=bounds)
+            except ConnectionError:
+                new_frame = build_output_frame("Connection error")
+                last_frame = write_output_frame(device, new_frame, last-frame, ROW_SHIFT, 1, 0.01)
+                continue
             flights = filter(flight_in_polygon, flights)
             closest_flight = min(flights, key=flight_distance, default=None)
 
