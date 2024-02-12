@@ -65,7 +65,7 @@ def main():
                 flights = fr_api.get_flights(bounds=bounds)
             except ConnectionError:
                 new_frame = build_output_frame("Connection error")
-                last_frame = write_output_frame(device, new_frame, last-frame, ROW_SHIFT, 1, 0.01)
+                last_frame = write_output_frame(device, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
                 continue
             flights = filter(flight_in_polygon, flights)
             closest_flight = min(flights, key=flight_distance, default=None)
