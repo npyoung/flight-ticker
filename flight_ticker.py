@@ -4,7 +4,7 @@ from shapely.geometry import Point, Polygon
 import logging
 from math import radians, acos, sin, cos
 from pathlib import Path
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, HTTPError
 import serial
 import subprocess
 import time
@@ -67,6 +67,11 @@ def main():
                 new_frame = build_output_frame("Connection error")
                 last_frame = write_output_frame(device, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
                 continue
+            except HTTPError:
+                new_frame = build_output_frame("HTTP error")
+                last_frame = write_output_frame(device, new_frame, last_frame, ROW_SHIFT, 1, 0.01)
+                continue
+
             flights = filter(flight_in_polygon, flights)
             closest_flight = min(flights, key=flight_distance, default=None)
 
